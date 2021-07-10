@@ -1,11 +1,10 @@
 import react, { Component } from "react";
-import { useBeforeunload } from 'react-beforeunload';
-import Loader from 'react-loader';
 import axios from "axios";
 import { uuid } from 'uuidv4';
 import config from "./config.json";
 import React from "react";
-import $ from '../node_modules/jquery/dist/jquery.min.js';
+import Loader from 'react-loader';
+
 
 class Converter extends Component {
 
@@ -19,12 +18,15 @@ class Converter extends Component {
             isSocketConnected: false,
             isVideoProcessed: false,
             isVideoProcessing: false,
+            isLoading: true,
             downloadUrl: ''
         };
 
         this.fileInput = react.createRef();
         this.handleConverToChange = this.handleConverToChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
+
+        console.log('Constructor :: ' + JSON.stringify(this.state));
     }
 
     handleConverToChange = (event) => {
@@ -38,6 +40,7 @@ class Converter extends Component {
 
         const newState = this.state;
         newState.isVideoProcessing = true;
+        newState.isLoading = true;
         this.setState(newState);
 
         let formData = new FormData();
@@ -55,8 +58,9 @@ class Converter extends Component {
                 console.log(response);
                 if (response.status === 200) {
                     const newState = this.state;
-                    newState.isVideoProcessing = true;
-                    newState.isVideoProcessed = false;
+                    newState.isVideoProcessing = false;
+                    newState.isVideoProcessed = true;
+                    newState.isLoading = false;
                     this.setState(newState);
                 }
             })
@@ -66,8 +70,10 @@ class Converter extends Component {
                 newState.downloadUrl = event.data;
                 newState.isVideoProcessed = false;
                 newState.isVideoProcessing = false;
+                newState.isLoading = false;
                 this.setState(newState);
             });
+        console.log('Submitted media :: ' + JSON.stringify(this.state));
     }
 
     componentDidMount() {
@@ -86,6 +92,7 @@ class Converter extends Component {
 
             const newerState = this.state;
             newerState.isSocketConnected = true;
+            newerState.isLoading = false;
             this.setState(newerState);
         });
 
@@ -95,15 +102,22 @@ class Converter extends Component {
             newerState.downloadUrl = event.data;
             newerState.isVideoProcessed = true;
             newerState.isVideoProcessing = false;
+            newerState.isLoading = false;
             this.setState(newerState);
-            $('.toast').toast('show');
+            console.log('Video Processed :: ' + JSON.stringify(this.state));
         });
+
+        console.log('Component mounted :: ' + JSON.stringify(this.state));
+    }
+
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        console.log('Component updated :: ' + JSON.stringify(this.state));
     }
 
     render() {
         return (
-            <Loader loaded={this.state.isSocketConnected || this.state.isVideoProcessing}>
-                <div className={`card position-absolute top-50 start-50 translate-middle ${this.state.isVideoProcessing && this.state.isVideoProcessed ? "invisible" : ""}`}>
+            <Loader loaded={!this.state.isLoading}>
+                <div className={`card position-absolute top-50 start-50 translate-middle ${this.state.isVideoProcessing || this.state.isVideoProcessed ? "invisible" : ""}`}>
                     <header className="card-header">Video Converter</header>
                     <div className="card-body">
                         <form onSubmit={this.handleSubmit} method="post" className="form-inline" id="convert-video">
@@ -125,17 +139,15 @@ class Converter extends Component {
                         <button className="btn btn-primary btn-sm" type="submit" form="convert-video">Convert</button>
                     </footer>
                 </div>
-                <Loader loaded={!this.state.isVideoProcessing}>
-                    <div className="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div className="toast-body">
-                            Video conversion completed
-                            <div className="mt-2 pt-2 border-top">
-                                <a type="button" className="btn btn-primary btn-sm" href={this.state.downloadUrl}>Download</a>
-                                <button type="button" className="btn btn-secondary btn-sm ms-2" data-bs-dismiss="toast">Close</button>
-                            </div>
+                <div>
+                    <div className={`card position-absolute top-50 start-50 translate-middle text-center ${this.state.isVideoProcessed ? "" : "invisible"}`}>
+                        <div className="card-body">
+                            <h5 className="card-title">Processing completed</h5>
+                            <p className="card-text">Your video has been processed and converted, you can download or play the video now.</p>
+                            <a href={this.state.downloadUrl} className="btn btn-primary">Download</a>
                         </div>
                     </div>
-                </Loader>
+                </div>
             </Loader>
         );
     }
