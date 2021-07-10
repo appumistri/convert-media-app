@@ -78,7 +78,7 @@ class Converter extends Component {
 
     componentDidMount() {
 
-        const socket = new WebSocket('ws://' + config.baseUrl);
+        const socket = new WebSocket('wss://' + config.baseUrl);
         const newState = this.state;
         newState.clientId = uuid();
         this.setState(newState);
